@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sangam.app",
+      "sha256_cert_fingerprints": [
+        "7B:77:D7:4F:F9:B2:B8:01:CB:6E:9D:2A:79:7B:EE:69:B6:5A:6A:3E:DE:9E:69:07:39:FD:DD:64:24:12:20:3A"
+      ]
+    }
+  }
+]

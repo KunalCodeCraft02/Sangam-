@@ -16,7 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Pinned (not the machine-generated ~/.android/debug.keystore) so the
+    // app's signing certificate — and therefore its SHA-256 fingerprint in
+    // public/.well-known/assetlinks.json — stays identical across every CI
+    // build. Android Links verification breaks if this fingerprint changes.
+    signingConfigs {
+        debug {
+            storeFile file('sangam-debug.keystore')
+            storePassword 'sangamdebug'
+            keyAlias 'sangamdebugkey'
+            keyPassword 'sangamdebug'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

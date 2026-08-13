@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import AuthProvider from "@/components/AuthProvider";
+import DeepLinkHandler from "@/components/DeepLinkHandler";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${playfair.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans bg-sand-100 text-forest-900">
+        <DeepLinkHandler />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
