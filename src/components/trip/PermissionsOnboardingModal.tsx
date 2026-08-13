@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ComponentType } from "react";
 import { motion } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { MapPin, Camera, Bell, Check, X, Compass } from "lucide-react";
 import { subscribeToPush } from "@/lib/push";
 
@@ -65,6 +66,17 @@ async function requestCamera(): Promise<PermissionStatus> {
 }
 
 async function requestNotifications(): Promise<PermissionStatus> {
+  // The Android WebView this app runs in doesn't implement the web
+  // Notification/Push APIs at all, so on native builds we go straight to
+  // Capacitor's push-notifications plugin (FCM) instead of the browser APIs.
+  if (Capacitor.isNativePlatform()) {
+    try {
+      return (await subscribeToPush()) ? "granted" : "denied";
+    } catch {
+      return "denied";
+    }
+  }
+
   if (!("Notification" in window)) return "unsupported";
   try {
     const result = await Notification.requestPermission();

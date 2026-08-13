@@ -57,6 +57,17 @@ jobs:
           fi
           echo "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 -d > android/app/sangam-debug.keystore
 
+      - name: Restore Firebase google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+            echo "Restored google-services.json — native push notifications will be wired up."
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 secret not set — building without native push notifications."
+          fi
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
