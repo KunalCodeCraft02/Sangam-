@@ -1,6 +1,7 @@
 // Regenerates the "Sangam" wordmark path data used in assets/icon-only.svg,
-// assets/icon-foreground.svg, and assets/splash.svg. Font: Playfair Display
-// (Google Fonts, SIL Open Font License), vendored at assets/fonts/.
+// assets/icon-foreground.svg, and assets/splash.svg. Font: Yatra One
+// (Google Fonts, SIL Open Font License), vendored at assets/fonts/ — an
+// Indian travel-signage-style display face that fits the app's theme.
 //
 // Usage: node scripts/gen-wordmark.cjs [canvasSize] [targetWidthRatio]
 //   node scripts/gen-wordmark.cjs 1024 0.62   # for the app icon
@@ -12,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 
 const TEXT = "Sangam";
-const FONT_PATH = path.join(__dirname, "..", "assets", "fonts", "PlayfairDisplay-Variable.ttf");
+const FONT_PATH = path.join(__dirname, "..", "assets", "fonts", "YatraOne-Regular.ttf");
 
 function centeredPathData(font, text, canvasSize, targetWidthRatio) {
   const targetWidth = canvasSize * targetWidthRatio;

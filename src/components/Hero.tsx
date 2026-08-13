@@ -49,7 +49,7 @@ export default function Hero() {
             className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <Link
-              href="/register"
+              href={session?.user ? "/dashboard" : "/register"}
               className="group inline-flex items-center gap-2 rounded-full bg-saffron-500 px-7 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:bg-saffron-600"
             >
               Start Planning
