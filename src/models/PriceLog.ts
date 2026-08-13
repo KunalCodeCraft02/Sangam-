@@ -12,7 +12,7 @@ export interface IPriceLog {
   locationName?: string;
   shopName?: string;
   category: PriceLogCategory;
-  imageString?: string;
+  imageUrl?: string;
   loggedAt: Date;
   createdAt: Date;
 }
@@ -28,7 +28,7 @@ const PriceLogSchema = new Schema<IPriceLog>({
   locationName: { type: String },
   shopName: { type: String, trim: true },
   category: { type: String, enum: PRICE_LOG_CATEGORIES, default: "Other" },
-  imageString: { type: String },
+  imageUrl: { type: String },
   loggedAt: { type: Date, required: true },
   createdAt: { type: Date, default: Date.now },
 });

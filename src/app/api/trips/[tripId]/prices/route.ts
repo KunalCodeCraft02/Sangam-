@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireTripMember } from "@/lib/tripAuth";
 import { reverseGeocode } from "@/lib/nominatim";
+import { findWishlistMatch } from "@/lib/wishlistMatch";
+import { sendPushToUsers } from "@/lib/pushNotify";
 import { PRICE_LOG_CATEGORIES, type PriceLogCategory } from "@/lib/priceLogCategories";
 import PriceLog, { type IPriceLog } from "@/models/PriceLog";
+import WishlistItem from "@/models/WishlistItem";
 import "@/models/User";
 
 const MAX_RESULTS = 50;
-// Client-side compression targets ~100-200KB; this is a generous upper bound
-// against abuse, well under MongoDB's 16MB document limit.
-const MAX_IMAGE_STRING_LENGTH = 3_000_000;
+const MAX_IMAGE_URL_LENGTH = 2048;
 
 function serializeLog(log: IPriceLog & { _id: unknown }, loggedBy: string) {
   return {
@@ -20,7 +21,7 @@ function serializeLog(log: IPriceLog & { _id: unknown }, loggedBy: string) {
     locationName: log.locationName ?? null,
     shopName: log.shopName ?? null,
     category: log.category,
-    imageString: log.imageString ?? null,
+    imageUrl: log.imageUrl ?? null,
     loggedAt: log.loggedAt.toISOString(),
     loggedBy,
   };
@@ -61,7 +62,7 @@ export async function POST(
   if (auth.error) return auth.error;
 
   const body = await request.json();
-  const { clientId, itemName, priceInr, lat, lng, loggedAt, shopName, category, imageString } =
+  const { clientId, itemName, priceInr, lat, lng, loggedAt, shopName, category, imageUrl } =
     body ?? {};
 
   if (typeof clientId !== "string" || !clientId) {
@@ -96,12 +97,12 @@ export async function POST(
   const resolvedCategory: PriceLogCategory = PRICE_LOG_CATEGORIES.includes(category)
     ? category
     : "Other";
-  if (imageString !== undefined) {
-    if (typeof imageString !== "string" || !imageString.startsWith("data:image/")) {
-      return NextResponse.json({ error: "Invalid image data" }, { status: 400 });
+  if (imageUrl !== undefined) {
+    if (typeof imageUrl !== "string" || !imageUrl.startsWith("https://")) {
+      return NextResponse.json({ error: "Invalid image URL" }, { status: 400 });
     }
-    if (imageString.length > MAX_IMAGE_STRING_LENGTH) {
-      return NextResponse.json({ error: "Image is too large" }, { status: 400 });
+    if (imageUrl.length > MAX_IMAGE_URL_LENGTH) {
+      return NextResponse.json({ error: "Image URL is too long" }, { status: 400 });
     }
   }
 
@@ -130,7 +131,7 @@ export async function POST(
       locationName: locationName ?? undefined,
       shopName: shopName?.trim() || undefined,
       category: resolvedCategory,
-      imageString: imageString || undefined,
+      imageUrl: imageUrl || undefined,
       loggedAt: loggedAtDate,
     });
   } catch (err) {
@@ -143,8 +144,38 @@ export async function POST(
     throw err;
   }
 
-  // Wishlist-match notifications are delivered to the matched (non-buying)
-  // members over the SSE stream, not echoed back to the buyer here — see
-  // prices/stream/route.ts.
+  // In-app toasts for currently-connected members are delivered over the SSE
+  // stream (see prices/stream/route.ts). Here we additionally push a device
+  // notification, but only to members whose *own* wishlist actually matches
+  // — never the buyer, and never the whole trip.
+  const otherMemberIds = auth.trip.memberIds
+    .map((id) => id.toString())
+    .filter((id) => id !== auth.userId);
+  if (otherMemberIds.length > 0) {
+    const otherWishlistItems = await WishlistItem.find({ tripId, addedBy: { $in: otherMemberIds } })
+      .select("name addedBy")
+      .lean();
+    const itemsByUser = new Map<string, { id: string; name: string }[]>();
+    for (const w of otherWishlistItems) {
+      const uid = w.addedBy.toString();
+      const list = itemsByUser.get(uid) ?? [];
+      list.push({ id: w._id.toString(), name: w.name });
+      itemsByUser.set(uid, list);
+    }
+
+    const matchedUserIds = Array.from(itemsByUser.entries())
+      .filter(([, items]) => findWishlistMatch(itemName.trim(), items))
+      .map(([uid]) => uid);
+
+    if (matchedUserIds.length > 0) {
+      const place = shopName?.trim() || locationName || "the market";
+      await sendPushToUsers(matchedUserIds, {
+        title: "Wishlist Alert",
+        body: `${itemName.trim()} was just logged at ${place}!`,
+        url: `/trip/${tripId}`,
+      });
+    }
+  }
+
   return NextResponse.json({ log: serializeLog(log, "You") }, { status: 201 });
 }

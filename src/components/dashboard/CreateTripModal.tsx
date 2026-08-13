@@ -57,12 +57,14 @@ export default function CreateTripModal() {
     }
     const query = destination.trim();
     if (query.length < 3) {
-      setSuggestions([]);
-      setSearching(false);
-      return;
+      const clearId = setTimeout(() => {
+        setSuggestions([]);
+        setSearching(false);
+      }, 0);
+      return () => clearTimeout(clearId);
     }
 
-    setSearching(true);
+    const searchingId = setTimeout(() => setSearching(true), 0);
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
@@ -76,7 +78,10 @@ export default function CreateTripModal() {
       }
     }, SEARCH_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(searchingId);
+      clearTimeout(timer);
+    };
   }, [destination]);
 
   function handleSelectSuggestion(place: PlaceSuggestion) {

@@ -26,6 +26,7 @@ export interface IRallyPoint {
   proposedByName: string;
   lat: number;
   lng: number;
+  locationName?: string;
   meetTimeLabel: string;
   status: RallyPointStatus;
   votes: IRallyPointVote[];
@@ -60,6 +61,7 @@ const RallyPointSchema = new Schema<IRallyPoint>({
   proposedByName: { type: String, required: true },
   lat: { type: Number, required: true },
   lng: { type: Number, required: true },
+  locationName: { type: String },
   meetTimeLabel: { type: String, required: true },
   status: { type: String, enum: RALLY_POINT_STATUSES, default: "proposed" },
   votes: { type: [RallyPointVoteSchema], default: [] },

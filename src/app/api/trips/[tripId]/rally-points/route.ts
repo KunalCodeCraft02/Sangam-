@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireTripMember } from "@/lib/tripAuth";
 import { serializeRallyPoint } from "@/lib/rallyPoint";
+import { reverseGeocode } from "@/lib/nominatim";
+import { sendPushToUsers } from "@/lib/pushNotify";
 import RallyPoint from "@/models/RallyPoint";
 import User from "@/models/User";
 
@@ -43,6 +45,7 @@ export async function POST(
   }
 
   const user = await User.findById(auth.userId).select("name").lean();
+  const locationName = await reverseGeocode(lat, lng);
 
   const rally = await RallyPoint.create({
     tripId,
@@ -50,10 +53,20 @@ export async function POST(
     proposedByName: user?.name ?? "A trip member",
     lat,
     lng,
+    locationName: locationName ?? undefined,
     meetTimeLabel: meetTimeLabel.trim(),
     status: "proposed",
     votes: [],
     etas: [],
+  });
+
+  const otherMemberIds = auth.trip.memberIds
+    .map((id) => id.toString())
+    .filter((id) => id !== auth.userId);
+  await sendPushToUsers(otherMemberIds, {
+    title: "Rally Alert",
+    body: `Group meeting proposed at ${meetTimeLabel.trim()}.`,
+    url: `/trip/${tripId}`,
   });
 
   return NextResponse.json(

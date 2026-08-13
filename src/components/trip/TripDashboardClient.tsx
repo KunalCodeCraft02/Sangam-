@@ -5,6 +5,7 @@ import { Users, MapPinned, Utensils, ShoppingBag, Siren } from "lucide-react";
 import { LocationProvider, type LatLng } from "./LocationProvider";
 import LocationModeToggle from "./LocationModeToggle";
 import TripMap, { type TripMember } from "./TripMap";
+import PermissionsOnboardingModal from "./PermissionsOnboardingModal";
 import FoodSection from "./food/FoodSection";
 import MarketSection from "./market/MarketSection";
 import SosButton from "./coordination/SosButton";
@@ -12,7 +13,7 @@ import RallyPointButton from "./coordination/RallyPointButton";
 import RallyPointModal from "./coordination/RallyPointModal";
 import GroupFeed from "./coordination/GroupFeed";
 import { useGroupFeed } from "./coordination/useGroupFeed";
-import type { GroupFeedItem, RallyFeedItem } from "./coordination/types";
+import type { GroupFeedItem, MeetingRoute, RallyFeedItem } from "./coordination/types";
 import type { ShoppingRoute } from "./market/types";
 
 const POLL_INTERVAL_MS = 5000;
@@ -41,6 +42,7 @@ export default function TripDashboardClient({
   const [proposingRally, setProposingRally] = useState(false);
   const [pendingRallyClick, setPendingRallyClick] = useState<LatLng | null>(null);
   const [shoppingRoute, setShoppingRoute] = useState<ShoppingRoute | null>(null);
+  const [meetingRoute, setMeetingRoute] = useState<MeetingRoute | null>(null);
   const { items: feedItems, setItems: setFeedItems } = useGroupFeed(tripId);
 
   useEffect(() => {
@@ -78,6 +80,11 @@ export default function TripDashboardClient({
     setActiveTab("map");
   }
 
+  function handleShowMeetingRoute(route: MeetingRoute) {
+    setMeetingRoute(route);
+    setActiveTab("map");
+  }
+
   async function handleProposeRallyPoint(meetTimeLabel: string) {
     if (!pendingRallyClick) return;
     const res = await fetch(`/api/trips/${tripId}/rally-points`, {
@@ -93,6 +100,7 @@ export default function TripDashboardClient({
 
   return (
     <LocationProvider tripId={tripId}>
+      <PermissionsOnboardingModal tripId={tripId} />
       <div className="mb-6 inline-flex rounded-full border border-sand-200 bg-white p-1 shadow-card">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -133,6 +141,7 @@ export default function TripDashboardClient({
               }}
               confirmedRally={confirmedRally}
               shoppingRoute={shoppingRoute}
+              meetingRoute={meetingRoute}
             />
           </div>
 
@@ -176,7 +185,12 @@ export default function TripDashboardClient({
 
         <div className="mt-6 rounded-2xl border border-sand-200 bg-white p-6 shadow-card">
           <h2 className="font-display text-lg font-semibold text-forest-900">Group feed</h2>
-          <GroupFeed tripId={tripId} items={feedItems} onItemUpdated={handleFeedItemUpdated} />
+          <GroupFeed
+            tripId={tripId}
+            items={feedItems}
+            onItemUpdated={handleFeedItemUpdated}
+            onShowRoute={handleShowMeetingRoute}
+          />
         </div>
       </div>
 

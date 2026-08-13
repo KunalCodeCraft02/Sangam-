@@ -2,9 +2,8 @@ const MAX_DIMENSION_PX = 800;
 const JPEG_QUALITY = 0.7;
 
 /**
- * Downscales an image file to a JPEG data URI client-side before it's sent
- * to the server as Base64. Keeps price-log photos small enough to store
- * directly on the MongoDB document without needing object storage.
+ * Downscales an image file to a JPEG data URI client-side before it's
+ * uploaded to Cloudinary via /api/upload — keeps upload size and time down.
  */
 export function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

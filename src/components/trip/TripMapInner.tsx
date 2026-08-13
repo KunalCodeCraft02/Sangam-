@@ -13,7 +13,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useLocation, type LatLng } from "./LocationProvider";
-import type { RallyFeedItem } from "./coordination/types";
+import type { MeetingRoute, RallyFeedItem } from "./coordination/types";
 import type { ShoppingRoute } from "./market/types";
 
 export interface TripMember {
@@ -108,6 +108,21 @@ function shoppingIcon() {
   });
 }
 
+function meetingIcon() {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+        width: 34px; height: 34px; border-radius: 9999px 9999px 9999px 2px;
+        background: #0f766e; color: white; display: flex; align-items: center;
+        justify-content: center; transform: rotate(45deg);
+        border: 3px solid #99f6e4; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      "><span style="transform: rotate(-45deg); font-size: 16px;">🚶</span></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -34],
+  });
+}
+
 function ClickToSpoof({ disabled }: { disabled: boolean }) {
   const { mode, setSimulatedPosition } = useLocation();
   useMapEvents({
@@ -150,13 +165,13 @@ function RecenterOnFirstFix({ position }: { position: LatLng | null }) {
   return null;
 }
 
-function FitBoundsOnShoppingRoute({ route }: { route: ShoppingRoute | null | undefined }) {
+function FitBoundsOnRoute({ routeGeoJson }: { routeGeoJson: [number, number][] | null | undefined }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!route || route.routeGeoJson.length === 0) return;
-    map.fitBounds(L.latLngBounds(route.routeGeoJson), { padding: [48, 48] });
-  }, [route, map]);
+    if (!routeGeoJson || routeGeoJson.length === 0) return;
+    map.fitBounds(L.latLngBounds(routeGeoJson), { padding: [48, 48] });
+  }, [routeGeoJson, map]);
 
   return null;
 }
@@ -171,6 +186,7 @@ export default function TripMapInner({
   onProposeRallyPoint,
   confirmedRally,
   shoppingRoute,
+  meetingRoute,
 }: {
   members: TripMember[];
   selfId: string;
@@ -179,6 +195,7 @@ export default function TripMapInner({
   onProposeRallyPoint: (pos: LatLng) => void;
   confirmedRally: RallyFeedItem | null;
   shoppingRoute?: ShoppingRoute | null;
+  meetingRoute?: MeetingRoute | null;
 }) {
   const { currentPosition, mode } = useLocation();
 
@@ -203,7 +220,8 @@ export default function TripMapInner({
       <ClickToSpoof disabled={rallyPointMode} />
       <RallyPointPicker active={rallyPointMode} onPick={onProposeRallyPoint} />
       <RecenterOnFirstFix position={currentPosition} />
-      <FitBoundsOnShoppingRoute route={shoppingRoute} />
+      <FitBoundsOnRoute routeGeoJson={shoppingRoute?.routeGeoJson} />
+      <FitBoundsOnRoute routeGeoJson={meetingRoute?.routeGeoJson} />
 
       {currentPosition && (
         <Marker
@@ -286,6 +304,29 @@ export default function TripMapInner({
           <Polyline
             positions={shoppingRoute.routeGeoJson}
             pathOptions={{ color: "#1d4ed8", weight: 4, opacity: 0.85, dashArray: "6 8" }}
+          />
+        </>
+      )}
+
+      {meetingRoute && (
+        <>
+          <Marker position={[meetingRoute.lat, meetingRoute.lng]} icon={meetingIcon()}>
+            <Popup>
+              <strong>Meeting at {meetingRoute.meetTimeLabel}</strong>
+              {meetingRoute.locationName && (
+                <>
+                  <br />
+                  {meetingRoute.locationName}
+                </>
+              )}
+              <br />
+              {Math.round(meetingRoute.durationSeconds / 60)} min walk (
+              {(meetingRoute.distanceMeters / 1000).toFixed(1)} km)
+            </Popup>
+          </Marker>
+          <Polyline
+            positions={meetingRoute.routeGeoJson}
+            pathOptions={{ color: "#0f766e", weight: 4, opacity: 0.85, dashArray: "6 8" }}
           />
         </>
       )}

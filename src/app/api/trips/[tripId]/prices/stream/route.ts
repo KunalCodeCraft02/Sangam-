@@ -107,7 +107,7 @@ export async function GET(
               locationName: log.locationName ?? null,
               shopName: log.shopName ?? null,
               category: log.category,
-              imageString: log.imageString ?? null,
+              imageUrl: log.imageUrl ?? null,
               loggedAt: log.loggedAt.toISOString(),
               loggedBy: user?.name ?? "A trip member",
             };

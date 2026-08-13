@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireTripMember } from "@/lib/tripAuth";
 import { closeIfExpired, serializePoll } from "@/lib/poll";
+import { sendPushToUsers } from "@/lib/pushNotify";
 import Poll, { MIN_POLL_OPTIONS, MAX_POLL_OPTIONS, POLL_DURATION_MS } from "@/models/Poll";
 
 interface IncomingOption {
@@ -115,6 +116,15 @@ export async function POST(
     status: "open",
     createdAt: now,
     closesAt: new Date(now.getTime() + POLL_DURATION_MS),
+  });
+
+  const otherMemberIds = auth.trip.memberIds
+    .map((id) => id.toString())
+    .filter((id) => id !== auth.userId);
+  await sendPushToUsers(otherMemberIds, {
+    title: "New Food Poll",
+    body: `${validOptions.length} restaurants proposed for dinner!`,
+    url: `/trip/${tripId}`,
   });
 
   return NextResponse.json({ poll: serializePoll(poll, auth.userId) }, { status: 201 });

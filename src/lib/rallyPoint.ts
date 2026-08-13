@@ -13,6 +13,7 @@ export function serializeRallyPoint(rally: HydratedDocument<IRallyPoint>, curren
     proposedByName: rally.proposedByName,
     lat: rally.lat,
     lng: rally.lng,
+    locationName: rally.locationName ?? null,
     meetTimeLabel: rally.meetTimeLabel,
     status: rally.status,
     yesVotes,

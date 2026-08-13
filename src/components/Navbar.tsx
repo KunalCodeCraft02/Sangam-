@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
-import { Compass, LogOut } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Compass } from "lucide-react";
+import UserMenu from "./UserMenu";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -46,18 +47,7 @@ export default function Navbar() {
           {status === "loading" ? (
             <div className="h-9 w-24 animate-pulse rounded-full bg-sand-200" />
           ) : session?.user ? (
-            <>
-              <span className="hidden text-sm font-medium text-forest-700/80 sm:block">
-                {session.user.name?.split(" ")[0]}
-              </span>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="inline-flex items-center gap-1.5 rounded-full bg-forest-700 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-forest-800"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Log out
-              </button>
-            </>
+            <UserMenu name={session.user.name} image={session.user.image} />
           ) : (
             <>
               <Link

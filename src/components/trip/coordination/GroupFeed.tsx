@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Siren, MapPin, CheckCircle2 } from "lucide-react";
-import type { GroupFeedItem, RallyFeedItem, SosFeedItem } from "./types";
+import { useEffect, useState } from "react";
+import { Siren, MapPin, CheckCircle2, Navigation } from "lucide-react";
+import { useLocation } from "../LocationProvider";
+import type { GroupFeedItem, MeetingRoute, RallyFeedItem, SosFeedItem } from "./types";
 
 function formatDuration(seconds: number) {
   const mins = Math.round(seconds / 60);
   if (mins < 1) return "<1 min away";
   return `${mins} min${mins === 1 ? "" : "s"} away`;
+}
+
+function formatWalkMinutes(seconds: number) {
+  const mins = Math.round(seconds / 60);
+  return mins < 1 ? "under a minute" : `${mins} min${mins === 1 ? "" : "s"}`;
 }
 
 function timeAgo(iso: string) {
@@ -77,13 +83,53 @@ function RallyCard({
   item,
   tripId,
   onUpdated,
+  onShowRoute,
 }: {
   item: RallyFeedItem;
   tripId: string;
   onUpdated: (item: GroupFeedItem) => void;
+  onShowRoute: (route: MeetingRoute) => void;
 }) {
+  const { currentPosition } = useLocation();
   const [voting, setVoting] = useState<"yes" | "no" | null>(null);
   const [error, setError] = useState("");
+  const [myRoute, setMyRoute] = useState<{
+    durationSeconds: number;
+    distanceMeters: number;
+    routeGeoJson: [number, number][];
+  } | null>(null);
+
+  useEffect(() => {
+    if (!currentPosition || item.status === "cancelled") return;
+    let cancelled = false;
+    const params = new URLSearchParams({
+      fromLat: String(currentPosition.lat),
+      fromLng: String(currentPosition.lng),
+    });
+    fetch(`/api/trips/${tripId}/rally-points/${item.id}/directions?${params}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.route) setMyRoute(data.route);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId, item.id, item.status, currentPosition]);
+
+  function handleShowRoute() {
+    if (!myRoute) return;
+    onShowRoute({
+      rallyId: item.id,
+      meetTimeLabel: item.meetTimeLabel,
+      locationName: item.locationName,
+      lat: item.lat,
+      lng: item.lng,
+      routeGeoJson: myRoute.routeGeoJson,
+      durationSeconds: myRoute.durationSeconds,
+      distanceMeters: myRoute.distanceMeters,
+    });
+  }
 
   async function castVote(vote: "yes" | "no") {
     setVoting(vote);
@@ -113,6 +159,30 @@ function RallyCard({
             {item.proposedByName} proposed a meeting at {item.meetTimeLabel}
           </p>
           <p className="mt-0.5 text-xs text-forest-700/60">{timeAgo(item.createdAt)}</p>
+
+          {item.status !== "cancelled" && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-saffron-200 bg-saffron-50 px-3 py-2">
+              <Navigation className="h-3.5 w-3.5 shrink-0 text-saffron-700" />
+              <p className="flex-1 text-xs font-medium text-forest-800">
+                Meeting at {item.meetTimeLabel}
+                {item.locationName ? ` (${item.locationName})` : ""}.{" "}
+                {myRoute
+                  ? `Walking time from your location: ${formatWalkMinutes(myRoute.durationSeconds)}.`
+                  : currentPosition
+                    ? "Calculating walking time…"
+                    : "Enable your location to see walking time."}
+              </p>
+              {myRoute && (
+                <button
+                  type="button"
+                  onClick={handleShowRoute}
+                  className="shrink-0 rounded-full bg-forest-700 px-3 py-1.5 text-xs font-semibold text-white shadow-soft transition hover:bg-forest-800"
+                >
+                  Show Route
+                </button>
+              )}
+            </div>
+          )}
 
           {item.status === "confirmed" ? (
             <div className="mt-3 rounded-lg bg-forest-50 px-3 py-2.5">
@@ -169,10 +239,12 @@ export default function GroupFeed({
   tripId,
   items,
   onItemUpdated,
+  onShowRoute,
 }: {
   tripId: string;
   items: GroupFeedItem[];
   onItemUpdated: (item: GroupFeedItem) => void;
+  onShowRoute: (route: MeetingRoute) => void;
 }) {
   if (items.length === 0) {
     return <p className="mt-4 text-sm text-forest-700/60">No alerts or meeting proposals yet.</p>;
@@ -191,7 +263,13 @@ export default function GroupFeed({
         item.type === "sos" ? (
           <SosCard key={item.id} item={item} tripId={tripId} onUpdated={onItemUpdated} />
         ) : (
-          <RallyCard key={item.id} item={item} tripId={tripId} onUpdated={onItemUpdated} />
+          <RallyCard
+            key={item.id}
+            item={item}
+            tripId={tripId}
+            onUpdated={onItemUpdated}
+            onShowRoute={onShowRoute}
+          />
         )
       )}
     </ul>

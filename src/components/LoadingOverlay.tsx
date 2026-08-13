@@ -50,6 +50,23 @@ function MandalaSpinner() {
   );
 }
 
+// Real progress isn't known for these async calls, so ease toward (but never
+// quite reach) 100% — the overlay unmounting is what signals "done". Mounted
+// only while the overlay is visible, so its percent naturally starts at 0
+// every time a new async operation begins.
+function ProgressPercent() {
+  const [percent, setPercent] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPercent((p) => (p >= 95 ? 95 : p + Math.max(1, Math.round((100 - p) / 10))));
+    }, 120);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <p className="text-sm font-bold tabular-nums text-saffron-600">{percent}%</p>;
+}
+
 export default function LoadingOverlay({
   visible,
   message,
@@ -102,6 +119,7 @@ export default function LoadingOverlay({
                 {list[index % list.length]}
               </motion.p>
             </AnimatePresence>
+            <ProgressPercent />
           </motion.div>
         </motion.div>
       )}

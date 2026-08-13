@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { ArrowRight, MapPin, Users } from "lucide-react";
 import HeroCarousel from "./HeroCarousel";
 
 export default function Hero() {
+  const { data: session } = useSession();
+
   return (
     <section className="relative isolate min-h-[92vh] overflow-hidden">
       <HeroCarousel />
@@ -52,13 +55,15 @@ export default function Hero() {
               Start Planning
               <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20"
-            >
-              <Users className="h-4 w-4" />
-              Login
-            </Link>
+            {!session?.user && (
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20"
+              >
+                <Users className="h-4 w-4" />
+                Login
+              </Link>
+            )}
           </motion.div>
 
           <p className="mt-6 text-xs font-medium text-sand-100/70">

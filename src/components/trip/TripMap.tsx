@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import type { TripMember } from "./TripMapInner";
 import type { LatLng } from "./LocationProvider";
-import type { RallyFeedItem } from "./coordination/types";
+import type { MeetingRoute, RallyFeedItem } from "./coordination/types";
 import type { ShoppingRoute } from "./market/types";
 
 const TripMapInner = dynamic(() => import("./TripMapInner"), {
@@ -25,6 +25,7 @@ export default function TripMap({
   onProposeRallyPoint,
   confirmedRally,
   shoppingRoute,
+  meetingRoute,
 }: {
   members: TripMember[];
   selfId: string;
@@ -33,6 +34,7 @@ export default function TripMap({
   onProposeRallyPoint: (pos: LatLng) => void;
   confirmedRally: RallyFeedItem | null;
   shoppingRoute?: ShoppingRoute | null;
+  meetingRoute?: MeetingRoute | null;
 }) {
   return (
     <TripMapInner
@@ -43,6 +45,7 @@ export default function TripMap({
       onProposeRallyPoint={onProposeRallyPoint}
       confirmedRally={confirmedRally}
       shoppingRoute={shoppingRoute}
+      meetingRoute={meetingRoute}
     />
   );
 }

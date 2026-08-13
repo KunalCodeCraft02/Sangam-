@@ -6,6 +6,7 @@ import { useLocation } from "../LocationProvider";
 import { PRICE_LOG_CATEGORIES, type PriceLogCategory } from "@/lib/priceLogCategories";
 import type { SyncedPriceLog } from "./useOfflineQueue";
 import type { ShoppingRoute } from "./types";
+import ImageLightbox from "./ImageLightbox";
 
 const rupeeFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -35,6 +36,7 @@ export default function MarketFeed({
   const [filter, setFilter] = useState<"All" | PriceLogCategory>("All");
   const [routingLogId, setRoutingLogId] = useState<string | null>(null);
   const [routingError, setRoutingError] = useState<string | null>(null);
+  const [previewLog, setPreviewLog] = useState<SyncedPriceLog | null>(null);
 
   const filteredLogs = useMemo(
     () => (filter === "All" ? logs : logs.filter((log) => log.category === filter)),
@@ -115,13 +117,20 @@ export default function MarketFeed({
             <li key={log.id} className="rounded-xl border border-sand-200 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  {log.imageString ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={log.imageString}
-                      alt={log.itemName}
-                      className="h-14 w-14 shrink-0 rounded-lg border border-sand-200 object-cover"
-                    />
+                  {log.imageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewLog(log)}
+                      aria-label={`View full-size photo of ${log.itemName}`}
+                      className="shrink-0 overflow-hidden rounded-lg border border-sand-200 transition hover:opacity-90"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={log.imageUrl}
+                        alt={log.itemName}
+                        className="h-14 w-14 object-cover"
+                      />
+                    </button>
                   ) : null}
                   <div>
                     <h3 className="font-semibold text-forest-900">{log.itemName}</h3>
@@ -165,6 +174,12 @@ export default function MarketFeed({
           ))}
         </ul>
       )}
+
+      <ImageLightbox
+        src={previewLog?.imageUrl ?? null}
+        alt={previewLog?.itemName ?? ""}
+        onClose={() => setPreviewLog(null)}
+      />
     </div>
   );
 }

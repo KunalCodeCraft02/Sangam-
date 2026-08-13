@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { X, IndianRupee, CloudOff, ImagePlus, Store } from "lucide-react";
+import { X, IndianRupee, CloudOff, ImagePlus, Camera, Store } from "lucide-react";
 import { inputClass, labelClass, primaryButtonClass } from "@/lib/ui";
 import { useLocation } from "../LocationProvider";
 import { compressImage } from "@/lib/compressImage";
@@ -20,7 +20,7 @@ export default function LogPriceModal({
     lng: number;
     shopName?: string;
     category: PriceLogCategory;
-    imageString?: string;
+    imageUrl?: string;
   }) => Promise<{ queued: boolean }>;
 }) {
   const { currentPosition } = useLocation();
@@ -29,7 +29,8 @@ export default function LogPriceModal({
   const [price, setPrice] = useState("");
   const [shopName, setShopName] = useState("");
   const [category, setCategory] = useState<PriceLogCategory>("Other");
-  const [imageString, setImageString] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -40,7 +41,8 @@ export default function LogPriceModal({
     setPrice("");
     setShopName("");
     setCategory("Other");
-    setImageString(null);
+    setPreviewUrl(null);
+    setImageUrl(null);
     setError("");
     setFeedback(null);
   }
@@ -56,9 +58,20 @@ export default function LogPriceModal({
     if (!file) return;
     setImageBusy(true);
     setError("");
+    setImageUrl(null);
     try {
-      setImageString(await compressImage(file));
+      const compressed = await compressImage(file);
+      setPreviewUrl(compressed);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: compressed }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Couldn't upload the photo");
+      setImageUrl(data.url);
     } catch (err) {
+      setPreviewUrl(null);
       setError(err instanceof Error ? err.message : "Couldn't process that image");
     } finally {
       setImageBusy(false);
@@ -87,7 +100,7 @@ export default function LogPriceModal({
         lng: currentPosition.lng,
         shopName: shopName.trim() || undefined,
         category,
-        imageString: imageString ?? undefined,
+        imageUrl: imageUrl ?? undefined,
       });
       setFeedback(result.queued ? "queued" : "saved");
       setTimeout(close, 1400);
@@ -213,29 +226,46 @@ export default function LogPriceModal({
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="photo" className={labelClass}>
+                  <label htmlFor="photo-upload" className={labelClass}>
                     Photo (optional)
                   </label>
                   <div className="flex items-center gap-3">
-                    {imageString && (
+                    {previewUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={imageString}
+                        src={previewUrl}
                         alt="Item preview"
                         className="h-14 w-14 shrink-0 rounded-lg border border-sand-200 object-cover"
                       />
                     )}
-                    <label
-                      htmlFor="photo"
-                      className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-sand-300 px-4 py-2.5 text-sm font-medium text-forest-600 transition hover:bg-sand-50"
-                    >
-                      <ImagePlus className="h-4 w-4" />
-                      {imageBusy ? "Processing..." : imageString ? "Change photo" : "Add a photo"}
-                    </label>
+                    <div className="grid flex-1 grid-cols-2 gap-2">
+                      <label
+                        htmlFor="photo-upload"
+                        className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-sand-300 px-3 py-2.5 text-xs font-medium text-forest-600 transition hover:bg-sand-50"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        {imageBusy ? "Uploading..." : imageUrl ? "Change photo" : "Upload from device"}
+                      </label>
+                      <label
+                        htmlFor="photo-camera"
+                        className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-sand-300 px-3 py-2.5 text-xs font-medium text-forest-600 transition hover:bg-sand-50"
+                      >
+                        <Camera className="h-4 w-4" />
+                        Take photo
+                      </label>
+                    </div>
                     <input
-                      id="photo"
+                      id="photo-upload"
                       type="file"
                       accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                    <input
+                      id="photo-camera"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
                       className="hidden"
                       onChange={handleImageChange}
                     />

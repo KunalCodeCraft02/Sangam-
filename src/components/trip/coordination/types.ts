@@ -25,6 +25,7 @@ export interface RallyFeedItem {
   proposedByName: string;
   lat: number;
   lng: number;
+  locationName: string | null;
   meetTimeLabel: string;
   status: "proposed" | "confirmed" | "cancelled";
   yesVotes: number;
@@ -36,3 +37,14 @@ export interface RallyFeedItem {
 }
 
 export type GroupFeedItem = SosFeedItem | RallyFeedItem;
+
+export interface MeetingRoute {
+  rallyId: string;
+  meetTimeLabel: string;
+  locationName: string | null;
+  lat: number;
+  lng: number;
+  routeGeoJson: [number, number][];
+  durationSeconds: number;
+  distanceMeters: number;
+}

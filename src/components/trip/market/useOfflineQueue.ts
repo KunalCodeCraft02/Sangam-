@@ -12,7 +12,7 @@ export interface QueuedPriceLog {
   loggedAt: string;
   shopName?: string;
   category: PriceLogCategory;
-  imageString?: string;
+  imageUrl?: string;
 }
 
 export interface SyncedPriceLog {
@@ -24,7 +24,7 @@ export interface SyncedPriceLog {
   locationName: string | null;
   shopName: string | null;
   category: PriceLogCategory;
-  imageString: string | null;
+  imageUrl: string | null;
   loggedAt: string;
   loggedBy: string;
 }

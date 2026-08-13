@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ShoppingBag, WifiOff, Sparkles } from "lucide-react";
+import { RefreshCw, ShoppingBag, WifiOff, Sparkles } from "lucide-react";
 import WishlistPanel, { type WishlistItem } from "./WishlistPanel";
 import LogPriceModal from "./LogPriceModal";
 import MarketFeed from "./MarketFeed";
 import { useOfflineQueue, type SyncedPriceLog, type WishlistAlert } from "./useOfflineQueue";
 import type { ShoppingRoute } from "./types";
+import LoadingOverlay from "@/components/LoadingOverlay";
+
+const REFRESH_MESSAGES = ["Refreshing market feed..."];
 
 const ALERT_DISPLAY_MS = 6000;
 
@@ -20,6 +23,7 @@ export default function MarketSection({
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [logs, setLogs] = useState<SyncedPriceLog[]>([]);
   const [alert, setAlert] = useState<WishlistAlert | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const alertTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -72,8 +76,24 @@ export default function MarketSection({
 
   const { isOnline, pendingCount, logPrice } = useOfflineQueue(tripId, handleSynced);
 
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/trips/${tripId}/prices`);
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data.logs ?? []);
+      }
+    } catch {
+      // best-effort — the SSE stream will still keep the feed eventually consistent
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
+      <LoadingOverlay visible={refreshing} messages={REFRESH_MESSAGES} />
       {alert && (
         <div className="flex items-center gap-3 rounded-2xl border border-saffron-300 bg-saffron-50 px-5 py-4 shadow-soft">
           <Sparkles className="h-5 w-5 shrink-0 text-saffron-600" />
@@ -106,7 +126,19 @@ export default function MarketSection({
             <ShoppingBag className="h-4 w-4 text-terracotta-600" />
             Market feed
           </h2>
-          <LogPriceModal wishlistItems={wishlistItems} onLog={logPrice} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              aria-label="Refresh market feed"
+              className="inline-flex items-center gap-1.5 rounded-full border border-sand-200 px-3.5 py-2 text-xs font-semibold text-forest-700 transition hover:bg-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+            <LogPriceModal wishlistItems={wishlistItems} onLog={logPrice} />
+          </div>
         </div>
         <MarketFeed tripId={tripId} logs={logs} onTakeMeThere={onTakeMeThere} />
       </div>
