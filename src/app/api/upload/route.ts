@@ -29,7 +29,8 @@ export async function POST(request: Request) {
       folder: UPLOAD_FOLDER,
     });
     return NextResponse.json({ url: result.secure_url }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("Cloudinary upload failed:", err);
     return NextResponse.json({ error: "Couldn't upload the image" }, { status: 502 });
   }
 }
