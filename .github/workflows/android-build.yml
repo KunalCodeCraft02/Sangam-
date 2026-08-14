@@ -78,3 +78,19 @@ jobs:
           name: sangam-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Distribute APK via Firebase App Distribution
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON_BASE64" ]; then
+            echo "::warning::Missing FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 secret — skipping App Distribution upload. Add it in Settings > Secrets and variables > Actions to get builds pushed to your phone automatically."
+            exit 0
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT_JSON_BASE64" | base64 -d > "$RUNNER_TEMP/firebase-service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
+          npx firebase-tools@13 appdistribution:distribute \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            --app 1:778475201996:android:4e3624847075afbc47a969 \
+            --groups "sangam-testers" \
+            --release-notes "Auto build from commit ${{ github.sha }}"
