@@ -100,7 +100,7 @@ export default function TripDashboardClient({
 
   return (
     <LocationProvider tripId={tripId}>
-      <PermissionsOnboardingModal tripId={tripId} />
+      <PermissionsOnboardingModal />
       <div className="mb-6 inline-flex rounded-full border border-sand-200 bg-white p-1 shadow-card">
         {TABS.map((tab) => {
           const Icon = tab.icon;

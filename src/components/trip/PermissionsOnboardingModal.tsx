@@ -36,9 +36,9 @@ const ROWS: PermissionRow[] = [
   },
 ];
 
-function storageKey(tripId: string) {
-  return `sangam:permissionsOnboarded:${tripId}`;
-}
+// One global key: permissions are device-level, not per-trip, so once the
+// user has seen this (for any trip) it should never show again.
+const STORAGE_KEY = "sangam:permissionsOnboarded";
 
 function requestLocation(): Promise<PermissionStatus> {
   return new Promise((resolve) => {
@@ -121,7 +121,7 @@ function StatusBadge({ status }: { status: PermissionStatus }) {
   return null;
 }
 
-export default function PermissionsOnboardingModal({ tripId }: { tripId: string }) {
+export default function PermissionsOnboardingModal() {
   const [open, setOpen] = useState(false);
   const [statuses, setStatuses] = useState<Record<PermissionRow["key"], PermissionStatus>>({
     location: "idle",
@@ -132,7 +132,7 @@ export default function PermissionsOnboardingModal({ tripId }: { tripId: string 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       try {
-        if (!window.localStorage.getItem(storageKey(tripId))) {
+        if (!window.localStorage.getItem(STORAGE_KEY)) {
           setOpen(true);
         }
       } catch {
@@ -140,7 +140,7 @@ export default function PermissionsOnboardingModal({ tripId }: { tripId: string 
       }
     }, 0);
     return () => clearTimeout(timeoutId);
-  }, [tripId]);
+  }, []);
 
   async function requestOne(key: PermissionRow["key"]) {
     setStatuses((prev) => ({ ...prev, [key]: "checking" }));
@@ -156,7 +156,7 @@ export default function PermissionsOnboardingModal({ tripId }: { tripId: string 
 
   function handleContinue() {
     try {
-      window.localStorage.setItem(storageKey(tripId), "1");
+      window.localStorage.setItem(STORAGE_KEY, "1");
     } catch {
       // localStorage unavailable (private browsing etc.) — just don't persist the dismissal
     }
